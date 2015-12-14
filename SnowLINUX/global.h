@@ -26,6 +26,7 @@ extern int g_ThreadNum;
 
 extern std::vector<MissionBar*> compMissionBarTable;
 extern std::vector<MissionCheck*> compMissionCheckTable;
+extern std::vector<bool> compMissionSelectTable;
 
 /*
 struct pthreadArg{

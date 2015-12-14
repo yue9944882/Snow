@@ -15,6 +15,8 @@ struct MissionInfo{
     int m_iMissionIndex;
     struct ThreadInfo*m_stThreadTable;
     pthread_mutex_t mutex;
+    pthread_mutex_t pauseMutex;
+    pthread_t m_missionTID;
     bool m_bRunning;
 };
 
@@ -27,7 +29,6 @@ struct ThreadInfo{
     //Compatible Member
     char*msg;
     pthread_t tid;
-
 };
 
 

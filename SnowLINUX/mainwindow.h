@@ -23,8 +23,11 @@ public slots:
     void slotNewMissionBar();
     void slotSetNextMissionDir();
 //    void slotNewMissionThread();
-//    void slotDelMissionBar();
-//    void slotUpdateSelectTable();
+//    void slotDelMissionBar();/
+    void slotUpdateSelectTable();
+    void slotDelMission();
+    void slotPauseMission();
+    void slotContMission();
 //    void slotSetGlobalURL(const QString&);
 //    void slotSetGlobalPath(const QString&);
 //    void slotSetGlobalNum(int);

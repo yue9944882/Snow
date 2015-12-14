@@ -14,9 +14,8 @@ public:
     MissionCheck(QWidget*parent,int cidx);
     ~MissionCheck();
     void adjustPosition();
-private:
     int compIndex;
-
+private:
 };
 
 

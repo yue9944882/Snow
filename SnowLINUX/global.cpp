@@ -30,6 +30,6 @@ pthread_t hthread; //Helper Thread
 
 std::vector<MissionBar*> compMissionBarTable;
 std::vector<MissionCheck*> compMissionCheckTable;
-
+std::vector<bool> compMissionSelectTable;
 
 

@@ -206,6 +206,9 @@ void*partget(void*arg){
     _llCurrentPos+=dw;
 
     while(_llCurrentPos<_llEndPos){
+
+        pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
+
         dr=recv(sockdesc,recvBuf,4096,0);
 ////////
 
@@ -236,6 +239,9 @@ void*partget(void*arg){
             pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
             _llCurrentPos+=dw;
         }
+
+        pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
+
     }
 
     close(file);

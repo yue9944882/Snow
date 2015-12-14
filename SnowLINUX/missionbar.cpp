@@ -8,7 +8,7 @@ MissionBar::MissionBar(QWidget*parent,int cindx):QWidget(parent){
 
     std::string mName;
     std::ostringstream oss(mName);
-    oss<<"Mission "<<"0";
+    oss<<"Mission "<<cindx;
     if(MissionBar::objectName().isEmpty()){
         MissionBar::setObjectName(QString::fromUtf8("MissionBar"));
     }
@@ -102,6 +102,7 @@ void MissionBar::slotUpdateProgress(){
     pthread_mutex_lock(&finishMutex);
     bool bTmp=((MissionInfo*)g_vecMissionTable[midx])->m_bRunning;
     pthread_mutex_unlock(&finishMutex);
+
     if(bTmp==false){
         pthread_mutex_lock(&timeMutex);
         ((MissionInfo*)g_vecMissionTable[midx])->m_lConsumeTime++;
