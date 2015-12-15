@@ -5,6 +5,9 @@
 #include "global_f.h"
 #include "missionbar.h"
 #include <QCheckBox>
+#include <QGraphicsScene>
+#include <QMatrix>
+#include <QPainter>
 #include <iterator>
 #include <QFileDialog>
 
@@ -13,6 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
     //Adjust postion
     this->move(400,100);
 
@@ -41,6 +45,21 @@ MainWindow::MainWindow(QWidget *parent) :
     this->ui->deleteButton->setEnabled(false);
 
     //Temp String ENV
+    g_bPlotFull=false;
+    g_tkPosition=1;
+    g_lastRate=0;
+    g_maxRate=0;
+    g_Scene=new QGraphicsScene;
+    QMatrix mat;
+    mat=this->ui->graphicsView->matrix();
+    mat.scale(1,0.2);
+    this->ui->graphicsView->setMatrix(mat);
+
+    timer=new QTimer;
+    timer->start(1000);
+    QObject::connect(timer,SIGNAL(timeout()),this,SLOT(slotPlotWave()));
+    this->setAttribute(Qt::WA_PaintOutsidePaintEvent);
+    //this->setAttribute(Qt::WA_P);
     //m_szPath=QString("/home/kimmin");
 }
 
@@ -108,7 +127,8 @@ void MainWindow::slotNewMissionBar(){
     marg->iThreadNum=g_ThreadNum;
 
     strcpy(marg->szUrl,g_URLString.toStdString().c_str());
-    //marg.szUrl="http://files.cnblogs.com/files/guguli/100003309726139.gif";
+    strncpy(mission->m_szURL,g_URLString.toStdString().c_str());
+	//marg.szUrl="http://files.cnblogs.com/files/guguli/100003309726139.gif";
     QString tmpStr=g_PathString.append('/');
     strcpy(marg->szPath,tmpStr.toStdString().c_str());
     //marg.szPath="/home/kimmin/Downloads/";
@@ -129,9 +149,6 @@ void MainWindow::slotNewMissionBar(){
 //  pthread_join(pt,NULL);
 
 }
-
-
-
 
 void MainWindow::slotUpdateSelectTable(){
     bool tmp=false;
@@ -267,8 +284,66 @@ void MainWindow::slotContMission(){
 }
 
 
-//void MainWindow::slotNewMissionThread(){
+void MainWindow::paintEvent(QPaintEvent *pe){
+//    QPainter painter(this);//10,90,171,131
+//    painter.drawLine(10,110,180,220);//Width 170 Height 110
+//    update();
+//    delete g_Scene;
+    this->ui->graphicsView->show();
 
+}
+
+
+void MainWindow::slotPlotWave(){
+    long tdb=0;
+    bool bExist=false;
+    long tdt=1;
+    for(int i=0;i<g_vecMissionTable.size();i++){
+        pthread_mutex_lock(&finishMutex);
+        bool btmp=((MissionInfo*)g_vecMissionTable[i])->m_bRunning;
+        pthread_mutex_unlock(&finishMutex);
+        if(btmp==false){
+            bExist=true;
+            pthread_mutex_lock(&outputMutex);
+            tdb+=((MissionInfo*)g_vecMissionTable[i])->m_lDoneBytes;
+            pthread_mutex_unlock(&outputMutex);
+            pthread_mutex_lock(&timeMutex);
+            tdt+=(((MissionInfo*)g_vecMissionTable[i])->m_lConsumeTime);
+            pthread_mutex_unlock(&timeMutex);
+        }
+    }
+
+    int rate=tdb/tdt;
+
+    if(bExist){
+        g_Scene->addLine((qreal)g_tkPosition,90-(((qreal)g_lastRate/1000)/100)*90,(qreal)g_tkPosition+2,90-(((qreal)rate/1000)/100)*90);
+        char tmp[128]={};
+        sprintf(tmp,"%9dKB/s",rate/1000);
+        this->ui->speedLabel->setText(tmp);
+    }
+
+//    QMatrix mat;
+
+    g_maxRate=g_maxRate>rate?g_maxRate:rate;
+
+    this->ui->graphicsView->setScene(g_Scene);
+
+//    mat=this->ui->graphicsView->matrix();
+//    mat.scale(1,1/((((qreal)rate)/1000)/100));
+//    this->ui->graphicsView->setMatrix(mat);
+
+    this->ui->graphicsView->show();
+
+    update();
+
+    g_lastRate=rate;
+    g_tkPosition+=2;
+
+    update();
+}
+
+
+//void MainWindow::slotNewMissionThread(){
 //        MissionArg marg;
 //        marg.iMissionIndex=0;
 //        marg.iThreadNum=5;
@@ -277,22 +352,13 @@ void MainWindow::slotContMission(){
 //        strcpy(marg.szPath,"/home/kimmin/Downloads/");
 //        //marg.szPath="/home/kimmin/Downloads/";
 //        pthread_t pt;
-
 //        pthread_create(&pt,NULL,begin_mission,(void*)(&marg));
-
 //        for(int i;i<10;i++){
-
 //            pthread_mutex_lock(&outputMutex);
-
 //            fprintf(stderr,"Progress %ld / %ld",((MissionInfo*)g_vecMissionTable[0])->m_lDoneBytes,((MissionInfo*)g_vecMissionTable[0])->m_lTotalBytes);
-
 //            pthread_mutex_unlock(&outputMutex);
-
 //            sleep(1);
 //        }
-
 //        pthread_join(pt,&lp);
-
 //        fprintf(stderr,"%ld\n",*(long*)lp);
-
 //}

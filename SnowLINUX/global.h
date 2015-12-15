@@ -6,6 +6,7 @@
 #include <vector>
 #include "global_t.h"
 #include <signal.h>
+#include <QGraphicsScene>
 #include "missionbar.h"
 #include "missioncheck.h"
 
@@ -27,6 +28,13 @@ extern int g_ThreadNum;
 extern std::vector<MissionBar*> compMissionBarTable;
 extern std::vector<MissionCheck*> compMissionCheckTable;
 extern std::vector<bool> compMissionSelectTable;
+
+extern bool g_bPlotFull;
+extern int g_tkPosition;
+
+extern QGraphicsScene*g_Scene;
+extern int g_lastRate;
+extern int g_maxRate;
 
 /*
 struct pthreadArg{

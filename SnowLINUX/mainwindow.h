@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <vector>
 #include <QString>
+#include <QTimer>
 #include "missionbar.h"
 #include "missioncheck.h"
 //#include "newdialog.h"
@@ -32,6 +33,7 @@ public slots:
 //    void slotSetGlobalPath(const QString&);
 //    void slotSetGlobalNum(int);
 //    void slotSetGlobalDir();
+    void slotPlotWave();
 
 public:
 
@@ -42,6 +44,10 @@ public:
     //QString m_szPath;
 
 private:
+    QTimer*timer;
+
+protected:
+    void paintEvent(QPaintEvent*);
 
 };
 

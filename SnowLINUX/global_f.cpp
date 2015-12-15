@@ -107,7 +107,8 @@ long preConnect(char*url,URLinfo*u,int midx){
 
     pthread_mutex_lock(&outputMutex);
     ((MissionInfo*)(g_vecMissionTable[midx]))->m_lTotalBytes=u->lContentLen;
-    pthread_mutex_unlock(&outputMutex);
+    //strncpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szPath,
+	pthread_mutex_unlock(&outputMutex);
 
     return u->lContentLen;
 }
@@ -267,6 +268,9 @@ int multiDownload(char*path,URLinfo*u,int num,int midx){
     pthreadArg*parg=(pthreadArg*)malloc(num*sizeof(pthreadArg));
 
     strncpy(u->szFilename,std::string(std::string(path)+std::string(u->szFilename)).c_str(),1024);
+    
+	strncpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szPath,u->szFilename,1024);
+	strcpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szFile,u->szFilename);
 
     tis=(struct ThreadInfo*)malloc(sizeof(struct ThreadInfo)*num);
     parg=(struct pthreadArg*)malloc(sizeof(struct pthreadArg)*num);
@@ -429,5 +433,64 @@ void sigalrm_handler(void){
 //    }
 //    pthread_mutex_unlock(&tableMutex);
 //    alarm(1);
+}
+
+void init_log(char*fullpathname){
+	std::string logpath(std::string(fullpathname)+std::string(".log"));
+	FILE*file=fopen(logpath.c_str(),"w+");
+	fprintf(file,"SNOWLOG\n");
+	fclose(file);
+}
+
+
+void write_log(char*fullpathname,MissionInfo*minfo){
+	FILE*file=fopen(fullpathname,"a+");
+	int tn=minfo->m_iThreadNum;
+	char filename[1024]={};
+	char urlname[1024]={};
+
+	strncpy(filename,minfo->m_szPath,1024);
+	strncpy(urlname,minfo->m_szURL,1024);
+
+	struct ThreadInfo*tinfo=minfo->m_stThreadTable;
+	
+	fprintf(file,"%s\n",filename);
+	fprintf(file,"%s\n",urlname);
+	
+	for(int i=0;i<tn;i++){
+    	pthread_mutex_lock(&(minfo->mutex));
+		fprintf(file,"%ld %ld %ld\n",tinfo[i].lBeginPos,tinfo[i].lEndPos,tinfo[i].lCurrentPos);
+		pthread_mutex_unlock(&(minfo->mutex));
+	}
+	fprintf(file,"SNOWLOGEND");
+	fclose(file);
+}
+
+void read_log(char*fullpathname,MissionInfo*minfo){
+	FILE*file=fopen(fullpathname,"r");
+		
+	fclose(file);
+}
+
+bool validate_log(char*fullpathname){
+	 FILE*file=fopen(fullpathname,"r");
+	 bool start=false,end=false;
+	 char tmp[1024]={};
+	 fgets(tmp,1024,file);
+	 if(strcmp(tmp,"SNOWLOG")==NULL){
+		start=true;
+	 }else{
+	 	return false;	
+	 }
+	 bzero(tmp,1024);
+	 while(NULL!=fgets(tmp,1024,file)){
+		if(strcmp(tmp,"SNOWLOGEND")){
+			end=true;
+		}
+	 }
+	if(start&&end)return true;
+	else return false;
+
+	fclose(file);
 }
 

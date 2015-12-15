@@ -7,6 +7,7 @@
 #include <QString>
 #include "missionbar.h"
 #include "missioncheck.h"
+#include <QGraphicsScene>
 
 int g_iMissionNum=0;
 int g_iNextMissionIndex=0;
@@ -31,5 +32,11 @@ pthread_t hthread; //Helper Thread
 std::vector<MissionBar*> compMissionBarTable;
 std::vector<MissionCheck*> compMissionCheckTable;
 std::vector<bool> compMissionSelectTable;
+
+bool g_bPlotFull;//Deprecated
+int g_tkPosition;
+int g_lastRate;
+int g_maxRate;
+QGraphicsScene*g_Scene;
 
 

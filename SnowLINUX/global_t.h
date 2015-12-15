@@ -18,6 +18,10 @@ struct MissionInfo{
     pthread_mutex_t pauseMutex;
     pthread_t m_missionTID;
     bool m_bRunning;
+	//LOG INFO
+	char m_szURL[1024];
+	char m_szPath[1024];
+	char m_szFile[1024];
 };
 
 struct ThreadInfo{
@@ -64,6 +68,13 @@ struct pthreadArg{
     int midx;//Mission Index
 
 };
+
+struct ThreadLog{
+	long lBegin;
+	long lEnd;
+	long lPos;
+};
+
 
 
 

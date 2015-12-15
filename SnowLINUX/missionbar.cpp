@@ -125,9 +125,10 @@ void MissionBar::slotUpdateProgress(){
     }
     this->sizeBar->setText(QString(tmpsz));
     pthread_mutex_lock(&timeMutex);
+    long ldtmp=(((MissionInfo*)g_vecMissionTable[midx])->m_lDoneBytes);
     long ltime=((MissionInfo*)g_vecMissionTable[midx])->m_lConsumeTime;
     this->timeBar->setText(setTimeFormat(ltime));
-    sprintf(tmpsp,"%ldKB/s",(ltmp/1000)/ltime);
+    sprintf(tmpsp,"%ldKB/s",(ldtmp/1000)/ltime);
     this->staticLabel->setText(QString(tmpsp));
     pthread_mutex_unlock(&timeMutex);
     pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
