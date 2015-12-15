@@ -9,7 +9,7 @@ class MissionCheck:public QCheckBox{
     Q_OBJECT
 
 public slots:
-
+    void slotChangeGlobalIndex();
 public:
     MissionCheck(QWidget*parent,int cidx);
     ~MissionCheck();

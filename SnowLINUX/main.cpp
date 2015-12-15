@@ -35,8 +35,10 @@ int main(int argc, char *argv[])
     pthread_mutex_init(&finishMutex,NULL);
     pthread_mutex_init(&timeMutex,NULL);
     pthread_mutex_init(&pathMutex,NULL);
+    pthread_mutex_init(&clickMutex,NULL);
 
     pthread_mutex_lock(&pathMutex);
+    pthread_mutex_lock(&clickMutex);
 
     //Enable Windows
     QApplication a(argc, argv);

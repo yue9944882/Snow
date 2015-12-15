@@ -103,6 +103,7 @@ void MainWindow::slotNewMissionBar(){
     MissionBar*mbar=new MissionBar(ui->scrollAreaWidgetContents,g_iMissionNum);//COMP INDEX
     MissionCheck*cbox=new MissionCheck(ui->scrollAreaWidgetContents,g_iMissionNum);//COMP INDEX
     QObject::connect(cbox,SIGNAL(clicked(bool)),this,SLOT(slotUpdateSelectTable()));
+    QObject::connect(cbox,SIGNAL(clicked(bool)),cbox,SLOT(slotChangeGlobalIndex()));
     cbox->setGeometry(2,3+45*g_iMissionNum,20,35);
     mbar->setGeometry(20,0+45*g_iMissionNum,540,35);
 
@@ -110,6 +111,7 @@ void MainWindow::slotNewMissionBar(){
     compMissionBarTable.push_back(mbar);
     compMissionCheckTable.push_back(cbox);
     compMissionSelectTable.push_back(false);
+    compPauseSelectTable.push_back(false);
     pthread_mutex_unlock(&tableMutex);
 
     mbar->show();
@@ -125,9 +127,10 @@ void MainWindow::slotNewMissionBar(){
     MissionArg*marg=new MissionArg;
     marg->iMissionIndex=midx;
     marg->iThreadNum=g_ThreadNum;
+    mission->m_stThreadTable=(ThreadInfo*)malloc(marg->iThreadNum*sizeof(ThreadInfo));
 
     strcpy(marg->szUrl,g_URLString.toStdString().c_str());
-    strncpy(mission->m_szURL,g_URLString.toStdString().c_str());
+    strncpy(mission->m_szURL,g_URLString.toStdString().c_str(),1024);
 	//marg.szUrl="http://files.cnblogs.com/files/guguli/100003309726139.gif";
     QString tmpStr=g_PathString.append('/');
     strcpy(marg->szPath,tmpStr.toStdString().c_str());
@@ -151,28 +154,63 @@ void MainWindow::slotNewMissionBar(){
 }
 
 void MainWindow::slotUpdateSelectTable(){
-    bool tmp=false;
-    for(int i=0;i<compMissionCheckTable.size();i++){
-        if(((MissionCheck*)compMissionCheckTable[i])->isChecked()){
-            compMissionSelectTable[i]=true;
-            tmp=true;
-        }else{
+    //
+    pthread_mutex_lock(&clickMutex);
+    bool bs;
+
+    if(((MissionCheck*)compMissionCheckTable[g_clickIndex])->isChecked()){
+        bs=true;
+        compMissionSelectTable[g_clickIndex]=true;
+        ((MissionCheck*)compMissionCheckTable[g_clickIndex])->setChecked(true);
+    }else{
+        bs=false;
+        compMissionSelectTable[g_clickIndex]=false;
+        ((MissionCheck*)compMissionCheckTable[g_clickIndex])->setChecked(true);
+    }
+
+    for(int i=0;i<compMissionSelectTable.size();i++){
+        if(i!=g_clickIndex){
             compMissionSelectTable[i]=false;
+            ((MissionCheck*)compMissionCheckTable[i])->setChecked(false);
         }
     }
-    if(tmp==false){
-        this->ui->newButton->setEnabled(true);
-        this->ui->contButton->setEnabled(false);
-        this->ui->pauseButton->setEnabled(false);
-        this->ui->restButton->setEnabled(false);
-        this->ui->deleteButton->setEnabled(false);
-    }else{
-        this->ui->newButton->setEnabled(true);
-        this->ui->contButton->setEnabled(false);
-        this->ui->pauseButton->setEnabled(true);
-        this->ui->restButton->setEnabled(true);
-        this->ui->deleteButton->setEnabled(true);
+    this->ui->newButton->setEnabled(true);
+    this->ui->deleteButton->setEnabled(true);
+    this->ui->restButton->setEnabled(true);
+    if(bs){
+        if(compPauseSelectTable[g_clickIndex]==false){
+            this->ui->pauseButton->setEnabled(true);
+            this->ui->contButton->setEnabled(false);
+        }else{
+            this->ui->contButton->setEnabled(true);
+            this->ui->pauseButton->setEnabled(false);
+        }
+
     }
+
+//    bool tmp=false;
+//    for(int i=0;i<compMissionCheckTable.size();i++){
+//        if(((MissionCheck*)compMissionCheckTable[i])->isChecked()){
+//            compMissionSelectTable[i]=true;
+//            tmp=true;
+//        }else{
+//            compMissionSelectTable[i]=false;
+//        }
+//    }
+//    if(tmp==false){
+//        this->ui->newButton->setEnabled(true);
+//        this->ui->contButton->setEnabled(false);
+//        if(compPauseSelectTable[i]==true)this->ui->pauseButton->setEnabled(false);
+//        else()
+//        this->ui->restButton->setEnabled(false);
+//        this->ui->deleteButton->setEnabled(false);
+//    }else{
+//        this->ui->newButton->setEnabled(true);
+//        this->ui->contButton->setEnabled(false);
+//        this->ui->pauseButton->setEnabled(true);
+//        this->ui->restButton->setEnabled(true);
+//        this->ui->deleteButton->setEnabled(true);
+//    }
 }
 
 
@@ -205,10 +243,12 @@ void MainWindow::slotDelMission(){
                     compMissionCheckTable[k]=compMissionCheckTable[k+1];
                     ((MissionCheck*)compMissionCheckTable[k])->compIndex=k;
                     compMissionSelectTable[k]=compMissionSelectTable[k+1];
+                    compPauseSelectTable[k]=compPauseSelectTable[k+1];
                 }else{
                     compMissionBarTable.pop_back();
                     compMissionCheckTable.pop_back();
                     compMissionSelectTable.pop_back();
+                    compPauseSelectTable.pop_back();
                 }
             }
             tmpBar->close();
@@ -243,10 +283,21 @@ void MainWindow::slotPauseMission(){
             }
             //Thread Operating
 
+//            int tn=(((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum);
+//            ThreadInfo*tinfo=(((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable);
+//            for(int i=0;i<tn;i++){
+//                pthread_cancel(tinfo[i].tid);
+//            }
+
             //Comp Operating
 
-            pthread_mutex_lock(&((MissionInfo*)g_vecMissionTable[midx])->pauseMutex);
-
+            //pthread_mutex_lock(&((MissionInfo*)g_vecMissionTable[midx])->pauseMutex);
+            //write_log((std::string(std::string(((MissionInfo*)g_vecMissionTable[midx])->m_szFile)+std::string(".log"))).c_str(),g_vecMissionTable[midx]);
+            write_log(((MissionInfo*)g_vecMissionTable[midx])->m_szFile,g_vecMissionTable[midx]);
+            pthread_mutex_lock(&finishMutex);
+            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
+            pthread_mutex_unlock(&finishMutex);
+            compPauseSelectTable[i]=true;
 //            pthread_mutex_lock(&finishMutex);
 //            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
 //            pthread_mutex_unlock(&finishMutex);

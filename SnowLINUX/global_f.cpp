@@ -9,6 +9,7 @@ void*partDownload(void*arg){
 }
 
 
+void init_log(const char*fullpathname);
 
 long preConnect(char*url,URLinfo*u,int midx){
 
@@ -127,6 +128,9 @@ void*partget(void*arg){
     long _llBeginPos=ti->lBeginPos;
     long _llEndPos=ti->lEndPos;
     long _llCurrentPos=_llBeginPos;
+    pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+    ti->lCurrentPos=ti->lBeginPos;
+    pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
     char*sendBuf=(char*)malloc(sizeof(char)*4096);
     char*recvBuf=(char*)malloc(sizeof(char)*4096);
     int sockdesc=socket(AF_INET,SOCK_STREAM,0);
@@ -175,8 +179,9 @@ void*partget(void*arg){
         skiphead++;
         headlength++;
     }
-
+//    pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
     _llCurrentPos=_llBeginPos;
+//    pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
     int file=open(parg->szFilename,O_CREAT|O_RDWR,S_IRWXU);
 
@@ -191,7 +196,8 @@ void*partget(void*arg){
         pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
         ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
-        ti->lCurrentPos=_llCurrentPos;
+        //ti->lCurrentPos=_llCurrentPos;
+        ti->lCurrentPos+=dw;
 
         pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
@@ -200,7 +206,8 @@ void*partget(void*arg){
         pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
         ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
-        ti->lCurrentPos=_llCurrentPos;
+        //ti->lCurrentPos=_llCurrentPos;
+        ti->lCurrentPos+=dw;
 
         pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
     }
@@ -225,9 +232,11 @@ void*partget(void*arg){
             pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
             ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
-            ti->lCurrentPos=_llCurrentPos;
+            //ti->lCurrentPos=_llCurrentPos;
+            ti->lCurrentPos+=dw;
 
             pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
             _llCurrentPos+=dw;
             break;
         }else{
@@ -235,7 +244,8 @@ void*partget(void*arg){
             pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
             ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
-            ti->lCurrentPos=_llCurrentPos;
+            //ti->lCurrentPos=_llCurrentPos;
+            ti->lCurrentPos+=dw;
 
             pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
             _llCurrentPos+=dw;
@@ -264,6 +274,7 @@ int multiDownload(char*path,URLinfo*u,int num,int midx){
     MissionInfo*m=(MissionInfo*)(g_vecMissionTable[midx]);
     m->m_iThreadNum=num;
     m->m_stThreadTable=(ThreadInfo*)malloc(num*sizeof(ThreadInfo));
+
     ThreadInfo*tis=m->m_stThreadTable;
     pthreadArg*parg=(pthreadArg*)malloc(num*sizeof(pthreadArg));
 
@@ -272,7 +283,9 @@ int multiDownload(char*path,URLinfo*u,int num,int midx){
 	strncpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szPath,u->szFilename,1024);
 	strcpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szFile,u->szFilename);
 
-    tis=(struct ThreadInfo*)malloc(sizeof(struct ThreadInfo)*num);
+    init_log(std::string(u->szFilename).c_str());
+
+    //tis=(struct ThreadInfo*)malloc(sizeof(struct ThreadInfo)*num);
     parg=(struct pthreadArg*)malloc(sizeof(struct pthreadArg)*num);
 
     int i;
@@ -334,7 +347,7 @@ int multiDownload(char*path,URLinfo*u,int num,int midx){
 
     free(sendBuf);
     free(recvBuf);
-    free(tis);
+    //free(tis);
     free(parg);
 
 
@@ -435,8 +448,9 @@ void sigalrm_handler(void){
 //    alarm(1);
 }
 
-void init_log(char*fullpathname){
+void init_log(const char*fullpathname){
 	std::string logpath(std::string(fullpathname)+std::string(".log"));
+
 	FILE*file=fopen(logpath.c_str(),"w+");
 	fprintf(file,"SNOWLOG\n");
 	fclose(file);
@@ -444,7 +458,11 @@ void init_log(char*fullpathname){
 
 
 void write_log(char*fullpathname,MissionInfo*minfo){
-	FILE*file=fopen(fullpathname,"a+");
+
+	std::string logpath(std::string(fullpathname)+std::string(".log"));
+    init_log(fullpathname);
+
+	FILE*file=fopen(logpath.c_str(),"a+");
 	int tn=minfo->m_iThreadNum;
 	char filename[1024]={};
 	char urlname[1024]={};
@@ -456,19 +474,60 @@ void write_log(char*fullpathname,MissionInfo*minfo){
 	
 	fprintf(file,"%s\n",filename);
 	fprintf(file,"%s\n",urlname);
-	
+	pthread_mutex_lock(&(minfo->mutex));
+    fprintf(file,"LENGTH:%ld,%ld\n",minfo->m_lTotalBytes,minfo->m_lDoneBytes);
+	pthread_mutex_unlock(&(minfo->mutex));
 	for(int i=0;i<tn;i++){
     	pthread_mutex_lock(&(minfo->mutex));
-		fprintf(file,"%ld %ld %ld\n",tinfo[i].lBeginPos,tinfo[i].lEndPos,tinfo[i].lCurrentPos);
+        fprintf(file,"%ld,%ld,%ld\n",tinfo[i].lBeginPos,tinfo[i].lEndPos,tinfo[i].lCurrentPos);
 		pthread_mutex_unlock(&(minfo->mutex));
 	}
 	fprintf(file,"SNOWLOGEND");
 	fclose(file);
 }
 
+
+
+bool validate_log(char*fullpathname);
+
 void read_log(char*fullpathname,MissionInfo*minfo){
+
+	//FULLPATHNAME Already contained XX.log
 	FILE*file=fopen(fullpathname,"r");
-		
+    MissionInfo*mission=minfo;
+	ThreadInfo*tis=(ThreadInfo*)malloc(sizeof(ThreadInfo)*(mission->m_iThreadNum));
+	mission->m_stThreadTable=tis;
+
+    bool bVal=validate_log(fullpathname);
+	if(!bVal)return;
+	char tmp[1024]={};
+	fgets(tmp,1024,file);//Validate Head
+	bzero(tmp,1024);
+	
+	fgets(tmp,1024,file);//
+	sscanf(tmp,"%s",mission->m_szPath);
+	bzero(tmp,1024);
+	
+	fgets(tmp,1024,file);//
+	sscanf(tmp,"%s",mission->m_szURL);
+	bzero(tmp,1024);
+	
+	fgets(tmp,1024,file);//
+	sscanf(tmp,"%d",&(mission->m_iThreadNum));
+	bzero(tmp,1024);
+	
+	fgets(tmp,1024,file);//
+    sscanf(tmp,"LENGTH:%ld,%ld",&(mission->m_lTotalBytes),&(mission->m_lDoneBytes));
+	bzero(tmp,1024);
+
+	for(int i=0;i<(mission->m_iThreadNum);i++){
+		fgets(tmp,1024,file);
+        //pthread_mutex_lock(&(mission->mutex));
+        sscanf(tmp,"%ld,%ld,%ld",&(tis[i].lBeginPos),&(tis[i].lEndPos),&(tis[i].lCurrentPos));
+		tis[i].parentMission=mission;
+		bzero(tmp,1024);
+	}
+
 	fclose(file);
 }
 
@@ -493,4 +552,13 @@ bool validate_log(char*fullpathname){
 
 	fclose(file);
 }
+
+
+void resumeDownload(MissionInfo*mission){
+	// the parameter is assigned by 'read_log' function
+
+
+}
+
+
 

@@ -11,6 +11,7 @@ class MissionBar:public QWidget{
 
 public slots:
     void slotUpdateProgress();
+
 public:
     MissionBar(QWidget*parent,int cidx);
     ~MissionBar();

@@ -46,7 +46,9 @@ MissionBar::MissionBar(QWidget*parent,int cindx):QWidget(parent){
 
     timer=new QTimer(this);
     timer->start(1000);
+
     QObject::connect(timer,SIGNAL(timeout()),this,SLOT(slotUpdateProgress()));
+
 
 //    pthread_mutex_lock(&tableMutex);
 //    int midx=-1;
@@ -157,3 +159,5 @@ QString MissionBar::setTimeFormat(long lSec){
     sprintf(tmp,"%02ld:%02ld:%02ld",h,m,s);
     return QString(tmp);
 }
+
+
