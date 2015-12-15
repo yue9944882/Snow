@@ -473,7 +473,8 @@ void write_log(char*fullpathname,MissionInfo*minfo){
 	struct ThreadInfo*tinfo=minfo->m_stThreadTable;
 	
 	fprintf(file,"%s\n",filename);
-	fprintf(file,"%s\n",urlname);
+    fprintf(file,"%s\n",urlname);
+    fprintf(file,"%d\n",minfo->m_iThreadNum);
 	pthread_mutex_lock(&(minfo->mutex));
     fprintf(file,"LENGTH:%ld,%ld\n",minfo->m_lTotalBytes,minfo->m_lDoneBytes);
 	pthread_mutex_unlock(&(minfo->mutex));
@@ -488,14 +489,14 @@ void write_log(char*fullpathname,MissionInfo*minfo){
 
 
 
-bool validate_log(char*fullpathname);
+bool validate_log(const char*fullpathname);
 
-void read_log(char*fullpathname,MissionInfo*minfo){
+void read_log(const char*fullpathname,MissionInfo*minfo){
 
 	//FULLPATHNAME Already contained XX.log
 	FILE*file=fopen(fullpathname,"r");
     MissionInfo*mission=minfo;
-	ThreadInfo*tis=(ThreadInfo*)malloc(sizeof(ThreadInfo)*(mission->m_iThreadNum));
+    ThreadInfo*tis=(ThreadInfo*)malloc(sizeof(ThreadInfo)*(mission->m_iThreadNum));
 	mission->m_stThreadTable=tis;
 
     bool bVal=validate_log(fullpathname);
@@ -523,27 +524,33 @@ void read_log(char*fullpathname,MissionInfo*minfo){
 	for(int i=0;i<(mission->m_iThreadNum);i++){
 		fgets(tmp,1024,file);
         //pthread_mutex_lock(&(mission->mutex));
-        sscanf(tmp,"%ld,%ld,%ld",&(tis[i].lBeginPos),&(tis[i].lEndPos),&(tis[i].lCurrentPos));
-		tis[i].parentMission=mission;
+        ///Debug Temp Value
+        long l1,l2,l3;
+        //sscanf(tmp,"%ld,%ld,%ld",&(tis[i].lBeginPos),&(tis[i].lEndPos),&(tis[i].lCurrentPos));
+        sscanf(tmp,"%ld,%ld,%ld",&l1,&l2,&l3);
+        tis[i].lBeginPos=l1;
+        tis[i].lEndPos=l2;
+        tis[i].lCurrentPos=l3;
+        tis[i].parentMission=mission;
 		bzero(tmp,1024);
 	}
 
 	fclose(file);
 }
 
-bool validate_log(char*fullpathname){
+bool validate_log(const char*fullpathname){
 	 FILE*file=fopen(fullpathname,"r");
 	 bool start=false,end=false;
 	 char tmp[1024]={};
 	 fgets(tmp,1024,file);
-	 if(strcmp(tmp,"SNOWLOG")==NULL){
+     if(strncmp(tmp,"SNOWLOG",7)==NULL){
 		start=true;
 	 }else{
 	 	return false;	
 	 }
 	 bzero(tmp,1024);
 	 while(NULL!=fgets(tmp,1024,file)){
-		if(strcmp(tmp,"SNOWLOGEND")){
+        if(strncmp(tmp,"SNOWLOGEND",10)){
 			end=true;
 		}
 	 }
@@ -554,9 +561,122 @@ bool validate_log(char*fullpathname){
 }
 
 
-void resumeDownload(MissionInfo*mission){
+void*resumeDownload(void*arg){
 	// the parameter is assigned by 'read_log' function
 
+    MissionInfo*mission=(MissionInfo*)arg;
+
+    URLinfo*u=new URLinfo;
+
+    preConnect(mission->m_szURL,u,mission->m_iMissionIndex);
+
+    MissionInfo*m=mission;
+
+    pthread_mutex_lock(&timeMutex);
+    m->m_lConsumeTime=0;
+    pthread_mutex_unlock(&timeMutex);
+
+
+    pthread_mutex_lock(&finishMutex);
+    m->m_bRunning=false;
+    pthread_mutex_unlock(&finishMutex);
+
+    pthread_mutex_init(&(m->mutex),NULL);
+
+
+    read_log(std::string(std::string(mission->m_szPath)+std::string(".log")).c_str(),m);
+
+
+    //m->m_iThreadNum=num;
+    //m->m_stThreadTable=(ThreadInfo*)malloc((m->m_iThreadNum)*sizeof(ThreadInfo));
+
+    ThreadInfo*tis=m->m_stThreadTable;
+    pthreadArg*parg=(pthreadArg*)malloc((m->m_iThreadNum)*sizeof(pthreadArg));
+
+//    strncpy(u->szFilename,std::string(std::string(path)+std::string(u->szFilename)).c_str(),1024);
+
+//    strncpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szPath,u->szFilename,1024);
+//    strcpy(((MissionInfo*)(g_vecMissionTable[midx]))->m_szFile,u->szFilename);
+
+    init_log(std::string(u->szFilename).c_str());
+
+    //tis=(struct ThreadInfo*)malloc(sizeof(struct ThreadInfo)*num);
+    parg=(struct pthreadArg*)malloc(sizeof(struct pthreadArg)*(m->m_iThreadNum));
+
+    int i;
+
+    long ltmptotal=0;
+    for(i=0;i<m->m_iThreadNum;i++){
+        pthread_mutex_lock(&(m->mutex));
+        ltmptotal+=(m->m_stThreadTable[i].lCurrentPos-m->m_stThreadTable[i].lBeginPos);
+        pthread_mutex_unlock(&(m->mutex));
+    }
+
+    pthread_mutex_lock(&(m->mutex));
+    m->m_lDoneBytes=ltmptotal;
+    pthread_mutex_unlock(&(m->mutex));
+
+    long dr=0,dw=0;
+
+    char*sendBuf=(char*)malloc(sizeof(char)*4096);
+    char*recvBuf=(char*)malloc(sizeof(char)*4096);
+
+    struct hostent*host=gethostbyname(u->szHostname);
+    if(host==NULL){
+        fprintf(stderr,"Resolve Hostname Failure!\n");
+        exit(-1);
+    }
+
+    strncpy(u->szIPv4addr,inet_ntoa(*(struct in_addr*)host->h_addr),16);
+    struct sockaddr_in*sock=(struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
+    bzero(sock,sizeof(struct sockaddr_in));
+    sock->sin_family=AF_INET;
+    sock->sin_addr.s_addr=inet_addr(u->szIPv4addr);
+    sock->sin_port=htons(u->iPort);
+
+    time_t t1,t2;
+
+    time(&t1);
+
+    strncpy(u->szFilename,m->m_szPath,1024);
+
+    for(i=0;i<m->m_iThreadNum;i++){
+        tis[i].sin=*sock;
+        tis[i].msg=(char*)malloc(sizeof(char)*4096);
+        sprintf(tis[i].msg,GET_GRAM,u->szURLname,u->szHostname,"Snow",tis[i].lBeginPos);
+        parg[i].llContentLen=&(u->lContentLen);
+        parg[i].szFilename=u->szFilename;
+        parg[i].szHostname=u->szHostname;
+        parg[i].szURLname=u->szURLname;
+        parg[i].ti=&(tis[i]);
+        parg[i].mllContentLen=&(m->m_lTotalBytes);
+        parg[i].mllPosition=&(m->m_lDoneBytes);
+        parg[i].midx=m->m_iMissionIndex;
+        parg[i].index=i;
+        pthread_create(&(tis[i].tid),NULL,partget,&(parg[i]));
+    }
+
+    int iSuccess=0;
+
+    for(i=0;i<(m->m_iThreadNum);i++){
+        pthread_join(tis[i].tid,NULL);
+        iSuccess++;
+    }
+
+    time(&t2);
+
+    if(iSuccess==(m->m_iThreadNum))printf("Download Success!Using Time:%d sec\n",(t2-t1));
+    else printf("Download Failure!\n");
+
+    free(sendBuf);
+    free(recvBuf);
+    //free(tis);
+    free(parg);
+
+
+    pthread_mutex_lock(&(m->mutex));
+    m->m_lDoneBytes=m->m_lTotalBytes;
+    pthread_mutex_unlock(&(m->mutex));
 
 }
 

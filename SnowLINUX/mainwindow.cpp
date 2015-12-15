@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->newButton,SIGNAL(clicked()),this,SLOT(slotNewMission()));
     QObject::connect(ui->deleteButton,SIGNAL(clicked()),this,SLOT(slotDelMission()));
     QObject::connect(ui->pauseButton,SIGNAL(clicked()),this,SLOT(slotPauseMission()));
-    QObject::connect(ui->pauseButton,SIGNAL(clicked()),this,SLOT(slotContMission()));
+    QObject::connect(ui->contButton,SIGNAL(clicked()),this,SLOT(slotContMission()));
 
     this->ui->newButton->setEnabled(true);
     this->ui->contButton->setEnabled(false);
@@ -102,8 +102,9 @@ void MainWindow::slotNewMissionBar(){
 
     MissionBar*mbar=new MissionBar(ui->scrollAreaWidgetContents,g_iMissionNum);//COMP INDEX
     MissionCheck*cbox=new MissionCheck(ui->scrollAreaWidgetContents,g_iMissionNum);//COMP INDEX
-    QObject::connect(cbox,SIGNAL(clicked(bool)),this,SLOT(slotUpdateSelectTable()));
     QObject::connect(cbox,SIGNAL(clicked(bool)),cbox,SLOT(slotChangeGlobalIndex()));
+    QObject::connect(cbox,SIGNAL(clicked(bool)),this,SLOT(slotUpdateSelectTable()));
+
     cbox->setGeometry(2,3+45*g_iMissionNum,20,35);
     mbar->setGeometry(20,0+45*g_iMissionNum,540,35);
 
@@ -162,10 +163,14 @@ void MainWindow::slotUpdateSelectTable(){
         bs=true;
         compMissionSelectTable[g_clickIndex]=true;
         ((MissionCheck*)compMissionCheckTable[g_clickIndex])->setChecked(true);
+        this->ui->deleteButton->setEnabled(true);
+        this->ui->restButton->setEnabled(true);
     }else{
         bs=false;
         compMissionSelectTable[g_clickIndex]=false;
-        ((MissionCheck*)compMissionCheckTable[g_clickIndex])->setChecked(true);
+        ((MissionCheck*)compMissionCheckTable[g_clickIndex])->setChecked(false);
+        this->ui->deleteButton->setEnabled(false);
+        this->ui->restButton->setEnabled(false);
     }
 
     for(int i=0;i<compMissionSelectTable.size();i++){
@@ -283,11 +288,11 @@ void MainWindow::slotPauseMission(){
             }
             //Thread Operating
 
-//            int tn=(((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum);
-//            ThreadInfo*tinfo=(((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable);
-//            for(int i=0;i<tn;i++){
-//                pthread_cancel(tinfo[i].tid);
-//            }
+            int tn=(((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum);
+            ThreadInfo*tinfo=(((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable);
+            for(int i=0;i<tn;i++){
+                pthread_cancel(tinfo[i].tid);
+            }
 
             //Comp Operating
 
@@ -298,6 +303,9 @@ void MainWindow::slotPauseMission(){
             ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
             pthread_mutex_unlock(&finishMutex);
             compPauseSelectTable[i]=true;
+            ((MissionCheck*)compMissionCheckTable[i])->click();
+            ((MissionCheck*)compMissionCheckTable[i])->click();
+
 //            pthread_mutex_lock(&finishMutex);
 //            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
 //            pthread_mutex_unlock(&finishMutex);
@@ -325,7 +333,13 @@ void MainWindow::slotContMission(){
 
             //Comp Operating
 
-            pthread_mutex_unlock(&((MissionInfo*)g_vecMissionTable[midx])->pauseMutex);
+            //pthread_mutex_unlock(&((MissionInfo*)g_vecMissionTable[midx])->pauseMutex);
+            pthread_t pt;
+            pthread_create(&pt,NULL,resumeDownload,g_vecMissionTable[midx]);
+            //resumeDownload(g_vecMissionTable[midx]);
+            compPauseSelectTable[i]=false;
+            ((MissionCheck*)compMissionCheckTable[i])->click();
+            ((MissionCheck*)compMissionCheckTable[i])->click();
 
 //            pthread_mutex_lock(&finishMutex);
 //            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=false;

@@ -28,4 +28,10 @@ extern void init_log(char*fullpathname);
 
 extern void write_log(char*fullpathname,MissionInfo*minfo);
 
+extern void read_log(const char*fullpathname,MissionInfo*minfo);
+
+extern void validate_log(const char*fullpathname);
+
+extern void*resumeDownload(void*);
+
 #endif // GLOBAL_F_H
