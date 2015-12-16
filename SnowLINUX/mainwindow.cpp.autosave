@@ -98,7 +98,7 @@ void MainWindow::slotNewMissionBar(){
     MissionInfo*mission=new MissionInfo;
     mission->m_iCompIndex=g_iMissionNum;
     int midx=g_iNextMissionIndex;
-    //mission->m_iMissionIndex=g_iNextMissionIndex;
+    mission->m_iMissionIndex=g_iNextMissionIndex;
     mission->m_bRunning=false;
     mission->m_lDoneBytes=0;
     mission->m_lTotalBytes=1;
