@@ -196,6 +196,7 @@ void*partget(void*arg){
         pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
         ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
         //ti->lCurrentPos=_llCurrentPos;
         ti->lCurrentPos+=dw;
 
@@ -206,6 +207,7 @@ void*partget(void*arg){
         pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
         ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
         //ti->lCurrentPos=_llCurrentPos;
         ti->lCurrentPos+=dw;
 
@@ -215,7 +217,7 @@ void*partget(void*arg){
 
     while(_llCurrentPos<_llEndPos){
 
-        pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
+        //pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
 
         dr=recv(sockdesc,recvBuf,4096,0);
 ////////
@@ -232,6 +234,7 @@ void*partget(void*arg){
             pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
             ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+            ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
             //ti->lCurrentPos=_llCurrentPos;
             ti->lCurrentPos+=dw;
 
@@ -244,6 +247,7 @@ void*partget(void*arg){
             pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
 
             ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+            ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
             //ti->lCurrentPos=_llCurrentPos;
             ti->lCurrentPos+=dw;
 
@@ -251,7 +255,7 @@ void*partget(void*arg){
             _llCurrentPos+=dw;
         }
 
-        pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
+        //pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
 
     }
 
@@ -266,6 +270,164 @@ void*partget(void*arg){
 //    pthread_mutex_unlock(&outputMutex);
 
 }
+
+
+
+void*rpartget(void*arg){
+
+    struct pthreadArg*parg=(struct pthreadArg*)arg;
+    struct ThreadInfo*ti=parg->ti;
+    int midx=parg->midx;
+    int tidx=parg->index;
+    int dw=0,dr=0;
+    long _llBeginPos=ti->lBeginPos;
+    long _llEndPos=ti->lEndPos;
+    long _llCurrentPos=ti->lCurrentPos;
+    long _llSpeedSub=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
+    //pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+    //ti->lCurrentPos=ti->lBeginPos;
+    //pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+    char*sendBuf=(char*)malloc(sizeof(char)*4096);
+    char*recvBuf=(char*)malloc(sizeof(char)*4096);
+    int sockdesc=socket(AF_INET,SOCK_STREAM,0);
+    if(sockdesc==-1){
+        fprintf(stderr,"Socket Creation Failure!\n");
+        exit(-1);
+    }
+
+    if((connect(sockdesc,(const struct sockaddr*)(&ti->sin),sizeof(struct sockaddr_in)))==-1){
+        fprintf(stderr,"Socket Connection Failure!\n");
+        exit(-1);
+    }
+    bzero(sendBuf,4096);
+    sprintf(sendBuf,GET_GRAM,parg->szURLname,parg->szHostname,"Snow",ti->lBeginPos);
+    if((send(sockdesc,sendBuf,strlen(sendBuf),0))==-1){
+        fprintf(stderr,"Header Sending Failure!\n");
+        exit(-1);
+    }
+
+
+    if((dr=recv(sockdesc,recvBuf,4096,0))==-1){
+        fprintf(stderr,"Header Recving Failure!\n");
+        exit(-1);
+    }
+
+    ///////////
+
+//    pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+//    ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dr;
+
+//    pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+
+
+    char*skiphead=recvBuf;
+
+    long headlength=0;
+
+    while(1){
+        if(*skiphead=='\n'&&*(skiphead-1)=='\r'&&*(skiphead-2)=='\n'&&*(skiphead-3)=='\r'){
+            skiphead++;
+            headlength++;
+            break;
+        }
+        skiphead++;
+        headlength++;
+    }
+//    pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+    _llCurrentPos=_llBeginPos;
+//    pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+    int file=open(parg->szFilename,O_CREAT|O_RDWR,S_IRWXU);
+
+    if(file==-1){
+        fprintf(stderr,"File Open Failure!\n");
+        fprintf(stderr,"%s",parg->szFilename);
+        exit(-1);
+    }
+
+    if(dr-headlength>_llEndPos){
+        dw=pwrite(file,skiphead,_llEndPos-headlength,_llCurrentPos);
+        pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes-_llSpeedSub;
+        //ti->lCurrentPos=_llCurrentPos;
+        ti->lCurrentPos+=dw;
+
+        pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+    }else{
+        dw=pwrite(file,skiphead,dr-headlength,_llCurrentPos);
+        pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+        long ld=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
+        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes-_llSpeedSub;
+        //ti->lCurrentPos=_llCurrentPos;
+        ti->lCurrentPos+=dw;
+
+        pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+    }
+    _llCurrentPos+=dw;
+    long ld=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
+    while(_llCurrentPos<_llEndPos){
+
+        //pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
+
+        dr=recv(sockdesc,recvBuf,4096,0);
+////////
+
+//        pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+//        ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dr;
+
+//        pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+//////////
+        if(dr+_llCurrentPos>*(parg->llContentLen)){
+            dw=pwrite(file,recvBuf,*(parg->llContentLen)-headlength-_llCurrentPos,_llCurrentPos);
+            pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+            ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+            ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes-_llSpeedSub;
+            //ti->lCurrentPos=_llCurrentPos;
+            ti->lCurrentPos+=dw;
+
+            pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+            _llCurrentPos+=dw;
+            break;
+        }else{
+            dw=pwrite(file,recvBuf,dr,_llCurrentPos);
+            pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+
+            ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes+=dw;
+            ((MissionInfo*)(g_vecMissionTable[midx]))->m_lSpeedBytes=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes-_llSpeedSub;
+            //ti->lCurrentPos=_llCurrentPos;
+            ti->lCurrentPos+=dw;
+
+            pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
+            _llCurrentPos+=dw;
+        }
+
+        //pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
+
+    }
+
+    close(file);
+    free(sendBuf);
+    free(recvBuf);
+
+//    pthread_mutex_lock(&outputMutex);
+
+//    ((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes=;
+
+//    pthread_mutex_unlock(&outputMutex);
+
+}
+
 
 
 
@@ -328,6 +490,7 @@ int multiDownload(char*path,URLinfo*u,int num,int midx){
         parg[i].ti=&(tis[i]);
         parg[i].mllContentLen=&(m->m_lTotalBytes);
         parg[i].mllPosition=&(m->m_lDoneBytes);
+        parg[i].mllSpeedLen=&(m->m_lSpeedBytes);
         parg[i].midx=midx;
         parg[i].index=i;
         pthread_create(&(tis[i].tid),NULL,partget,&(parg[i]));
@@ -614,6 +777,7 @@ void*resumeDownload(void*arg){
 
     pthread_mutex_lock(&(m->mutex));
     m->m_lDoneBytes=ltmptotal;
+    m->m_lSpeedBytes=m->m_lDoneBytes;
     pthread_mutex_unlock(&(m->mutex));
 
     long dr=0,dw=0;
@@ -640,7 +804,7 @@ void*resumeDownload(void*arg){
 
     strncpy(u->szFilename,m->m_szPath,1024);
 
-    for(i=0;i<m->m_iThreadNum;i++){
+    for(i=0;i<(m->m_iThreadNum);i++){
         tis[i].sin=*sock;
         tis[i].msg=(char*)malloc(sizeof(char)*4096);
         sprintf(tis[i].msg,GET_GRAM,u->szURLname,u->szHostname,"Snow",tis[i].lBeginPos);
@@ -651,9 +815,10 @@ void*resumeDownload(void*arg){
         parg[i].ti=&(tis[i]);
         parg[i].mllContentLen=&(m->m_lTotalBytes);
         parg[i].mllPosition=&(m->m_lDoneBytes);
+        parg[i].mllSpeedLen=&(m->m_lSpeedBytes);
         parg[i].midx=m->m_iMissionIndex;
         parg[i].index=i;
-        pthread_create(&(tis[i].tid),NULL,partget,&(parg[i]));
+        pthread_create(&(tis[i].tid),NULL,rpartget,&(parg[i]));
     }
 
     int iSuccess=0;

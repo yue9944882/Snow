@@ -10,6 +10,7 @@ struct MissionInfo{
     int m_iThreadNum;
     long m_lConsumeTime;
     long m_lDoneBytes;
+    long m_lSpeedBytes;
     long m_lTotalBytes;
     int m_iCompIndex;
     int m_iMissionIndex;
@@ -64,6 +65,7 @@ struct pthreadArg{
     long*llContentLen;
     long*mllContentLen;
     long*mllPosition;
+    long*mllSpeedLen;
     int index;//Thread Index
     int midx;//Mission Index
 

@@ -111,10 +111,12 @@ void MissionBar::slotUpdateProgress(){
         pthread_mutex_unlock(&timeMutex);
     }
     pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
-    double db=(double)(((MissionInfo*)g_vecMissionTable[midx])->m_lDoneBytes);
-    double tb=(double)(((MissionInfo*)g_vecMissionTable[midx])->m_lTotalBytes);
-    double pq=db/tb;
-    this->progressBar->setValue((int)(pq*100));
+    if(bTmp==false){
+        double db=(double)(((MissionInfo*)g_vecMissionTable[midx])->m_lDoneBytes);
+        double tb=(double)(((MissionInfo*)g_vecMissionTable[midx])->m_lTotalBytes);
+        double pq=db/tb;
+        this->progressBar->setValue((int)(pq*100));
+    }
     char tmpsz[64]={};
     char tmpsp[64]={};
     long ltmp=(((MissionInfo*)g_vecMissionTable[midx])->m_lTotalBytes);
@@ -126,8 +128,10 @@ void MissionBar::slotUpdateProgress(){
         sprintf(tmpsz,"%ldMB",ltmp/(1000*1000));
     }
     this->sizeBar->setText(QString(tmpsz));
+
     pthread_mutex_lock(&timeMutex);
-    long ldtmp=(((MissionInfo*)g_vecMissionTable[midx])->m_lDoneBytes);
+    long ldtmp=(((MissionInfo*)g_vecMissionTable[midx])->m_lSpeedBytes);
+    fprintf(stderr,"SpeedByte :%ld <>  %ld\n",(((MissionInfo*)g_vecMissionTable[midx])->m_lSpeedBytes),(((MissionInfo*)g_vecMissionTable[midx])->m_lDoneBytes));
     long ltime=((MissionInfo*)g_vecMissionTable[midx])->m_lConsumeTime;
     this->timeBar->setText(setTimeFormat(ltime));
     sprintf(tmpsp,"%ldKB/s",(ldtmp/1000)/ltime);

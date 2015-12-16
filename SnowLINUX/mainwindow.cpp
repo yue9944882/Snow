@@ -95,6 +95,7 @@ void MainWindow::slotNewMissionBar(){
     mission->m_lDoneBytes=0;
     mission->m_lTotalBytes=1;
     mission->m_lConsumeTime=0;
+    mission->m_lSpeedBytes=0;
 
 
     pthread_mutex_init(&(mission->mutex),NULL);
@@ -180,8 +181,8 @@ void MainWindow::slotUpdateSelectTable(){
         }
     }
     this->ui->newButton->setEnabled(true);
-    this->ui->deleteButton->setEnabled(true);
-    this->ui->restButton->setEnabled(true);
+    //this->ui->deleteButton->setEnabled(true);
+    //this->ui->restButton->setEnabled(true);
     if(bs){
         if(compPauseSelectTable[g_clickIndex]==false){
             this->ui->pauseButton->setEnabled(true);
@@ -258,6 +259,10 @@ void MainWindow::slotDelMission(){
             }
             tmpBar->close();
             tmpCheck->close();
+            ThreadInfo*tis=((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable;
+            for(int m=0;m<((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum;m++){
+                pthread_cancel(tis[m].tid);
+            }
             delete tmpBar;
             delete tmpCheck;
         }
@@ -370,10 +375,10 @@ void MainWindow::slotPlotWave(){
         if(btmp==false){
             bExist=true;
             pthread_mutex_lock(&outputMutex);
-            tdb+=((MissionInfo*)g_vecMissionTable[i])->m_lDoneBytes;
+            tdb+=((MissionInfo*)g_vecMissionTable[i])->m_lSpeedBytes;
             pthread_mutex_unlock(&outputMutex);
             pthread_mutex_lock(&timeMutex);
-            tdt+=(((MissionInfo*)g_vecMissionTable[i])->m_lConsumeTime);
+            tdt+=(((MissionInfo*)g_vecMissionTable[i])->m_lConsumeTime)+1;
             pthread_mutex_unlock(&timeMutex);
         }
     }
