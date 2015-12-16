@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //Adjust postion
     this->move(400,100);
-
+    this->setWindowTitle(tr("Snow"));
     //ToolButtonIcon
     ui->newButton->setIcon(QIcon("/home/kimmin/Github/Snow/SnowLINUX/new.png"));
     ui->newButton->setStatusTip(tr("Start a new mission!"));
@@ -98,7 +98,7 @@ void MainWindow::slotNewMissionBar(){
     MissionInfo*mission=new MissionInfo;
     mission->m_iCompIndex=g_iMissionNum;
     int midx=g_iNextMissionIndex;
-    //mission->m_iMissionIndex=g_iNextMissionIndex;
+    mission->m_iMissionIndex=g_iNextMissionIndex;
     mission->m_bRunning=false;
     mission->m_lDoneBytes=0;
     mission->m_lTotalBytes=1;
