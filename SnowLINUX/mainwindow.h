@@ -29,6 +29,7 @@ public slots:
     void slotDelMission();
     void slotPauseMission();
     void slotContMission();
+    void slotRestMission();
 //    void slotSetGlobalURL(const QString&);
 //    void slotSetGlobalPath(const QString&);
 //    void slotSetGlobalNum(int);

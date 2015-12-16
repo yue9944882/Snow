@@ -372,6 +372,7 @@ void*rpartget(void*arg){
     }
     _llCurrentPos+=dw;
     long ld=((MissionInfo*)(g_vecMissionTable[midx]))->m_lDoneBytes;
+
     while(_llCurrentPos<_llEndPos){
 
         //pthread_mutex_lock(&(((MissionInfo*)g_vecMissionTable[midx])->pauseMutex));
@@ -736,12 +737,11 @@ void*resumeDownload(void*arg){
     MissionInfo*m=mission;
 
     pthread_mutex_lock(&timeMutex);
-    m->m_lConsumeTime=0;
+    m->m_lConsumeTime=10;
     pthread_mutex_unlock(&timeMutex);
 
-
     pthread_mutex_lock(&finishMutex);
-    m->m_bRunning=false;
+    (m)->m_bRunning=false;
     pthread_mutex_unlock(&finishMutex);
 
     pthread_mutex_init(&(m->mutex),NULL);

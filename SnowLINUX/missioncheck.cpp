@@ -7,7 +7,7 @@ MissionCheck::MissionCheck(QWidget*parent,int cidx):QCheckBox(parent){
 }
 
 void MissionCheck::adjustPosition(){
-    this->move(2,3+45*this->compIndex);
+    this->move(2,10+45*this->compIndex);
 }
 
 

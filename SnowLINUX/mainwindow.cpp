@@ -5,6 +5,7 @@
 #include "global_f.h"
 #include "missionbar.h"
 #include <QCheckBox>
+#include <QFont>
 #include <QGraphicsScene>
 #include <QMatrix>
 #include <QPainter>
@@ -37,6 +38,13 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->deleteButton,SIGNAL(clicked()),this,SLOT(slotDelMission()));
     QObject::connect(ui->pauseButton,SIGNAL(clicked()),this,SLOT(slotPauseMission()));
     QObject::connect(ui->contButton,SIGNAL(clicked()),this,SLOT(slotContMission()));
+    QObject::connect(ui->restButton,SIGNAL(clicked()),this,SLOT(slotRestMission()));
+
+    QFont font=this->ui->labelPath->font();
+    font.setPointSize(10);
+    this->ui->labelPath->setWordWrap(true);
+    this->ui->labelPath->setFont(font);
+    this->ui->labelPath->setAlignment(Qt::AlignTop);
 
     this->ui->newButton->setEnabled(true);
     this->ui->contButton->setEnabled(false);
@@ -101,13 +109,13 @@ void MainWindow::slotNewMissionBar(){
     pthread_mutex_init(&(mission->mutex),NULL);
     pthread_mutex_init(&(mission->pauseMutex),NULL);
 
-    MissionBar*mbar=new MissionBar(ui->scrollAreaWidgetContents,g_iMissionNum);//COMP INDEX
-    MissionCheck*cbox=new MissionCheck(ui->scrollAreaWidgetContents,g_iMissionNum);//COMP INDEX
+    MissionBar*mbar=new MissionBar(ui->scrollAreaWidgetContents,compMissionBarTable.size());//COMP INDEX
+    MissionCheck*cbox=new MissionCheck(ui->scrollAreaWidgetContents,compMissionBarTable.size());//COMP INDEX
     QObject::connect(cbox,SIGNAL(clicked(bool)),cbox,SLOT(slotChangeGlobalIndex()));
     QObject::connect(cbox,SIGNAL(clicked(bool)),this,SLOT(slotUpdateSelectTable()));
 
-    cbox->setGeometry(2,3+45*g_iMissionNum,20,35);
-    mbar->setGeometry(20,0+45*g_iMissionNum,540,35);
+    cbox->adjustPosition();
+    mbar->adjustPosition();
 
     pthread_mutex_lock(&tableMutex);
     compMissionBarTable.push_back(mbar);
@@ -194,6 +202,32 @@ void MainWindow::slotUpdateSelectTable(){
 
     }
 
+    int midx=-1;
+    int sel=-1;
+    for(int j=0;j<g_vecMissionTable.size();j++){
+        if(((MissionInfo*)g_vecMissionTable[j])->m_iCompIndex==g_clickIndex){
+            midx=((MissionInfo*)g_vecMissionTable[j])->m_iMissionIndex;
+            sel=j;
+        }
+    }
+    if(sel==-1||midx==-1){
+        return;
+    }
+
+    char tmp[1024]={};
+
+    sprintf(tmp,"Thread Number :%d",((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum);
+    ui->labelTN->setText(QString(tmp));
+    bzero(tmp,1024);
+
+    sprintf(tmp,"Thread ID : \n%ld\nMission ID :\n%d",((MissionInfo*)g_vecMissionTable[midx])->m_missionTID,((MissionInfo*)g_vecMissionTable[midx])->m_iMissionIndex);
+    ui->labelPath->setText(QString(tmp));
+    ui->labelPath->adjustSize();
+    bzero(tmp,1024);
+
+//    sprintf(tmp,"URL :\n%s",((MissionInfo*)g_vecMissionTable[midx])->m_szURL);
+//    ui->labelPath->setText(QString(tmp));
+
 //    bool tmp=false;
 //    for(int i=0;i<compMissionCheckTable.size();i++){
 //        if(((MissionCheck*)compMissionCheckTable[i])->isChecked()){
@@ -263,6 +297,9 @@ void MainWindow::slotDelMission(){
             for(int m=0;m<((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum;m++){
                 pthread_cancel(tis[m].tid);
             }
+            pthread_mutex_lock(&finishMutex);
+            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
+            pthread_mutex_unlock(&finishMutex);
             delete tmpBar;
             delete tmpCheck;
         }
@@ -275,6 +312,60 @@ void MainWindow::slotDelMission(){
     }
 
 }
+
+void MainWindow::slotRestMission(){
+    for(int i=0;i<compMissionSelectTable.size();i++){
+        if(compMissionSelectTable[i]==true){
+            //Do Deletion
+            int midx=-1;
+            int sel=-1;
+            for(int j=0;j<g_vecMissionTable.size();j++){
+                if(((MissionInfo*)g_vecMissionTable[j])->m_iCompIndex==i){
+                    midx=((MissionInfo*)g_vecMissionTable[j])->m_iMissionIndex;
+                    sel=j;
+                }
+            }
+            if(sel==-1||midx==-1){
+                return;
+            }
+            //Thread Operating
+
+            ThreadInfo*tis=((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable;
+
+            for(int m=0;m<((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum;m++){
+                pthread_cancel(tis[m].tid);
+            }
+
+            MissionInfo*mission=g_vecMissionTable[midx];
+            mission->m_bRunning=false;
+            mission->m_lDoneBytes=0;
+            mission->m_lTotalBytes=1;
+            mission->m_lConsumeTime=0;
+            mission->m_lSpeedBytes=0;
+            MissionArg*marg=new MissionArg;
+            marg->iMissionIndex=midx;
+            marg->iThreadNum=g_ThreadNum;
+            mission->m_stThreadTable=(ThreadInfo*)malloc(marg->iThreadNum*sizeof(ThreadInfo));
+
+            strcpy(marg->szUrl,g_URLString.toStdString().c_str());
+            strncpy(mission->m_szURL,g_URLString.toStdString().c_str(),1024);
+            //marg.szUrl="http://files.cnblogs.com/files/guguli/100003309726139.gif";
+            QString tmpStr=g_PathString.append('/');
+            strcpy(marg->szPath,tmpStr.toStdString().c_str());
+            //marg.szPath="/home/kimmin/Downloads/";
+
+            pthread_create(&(mission->m_missionTID),NULL,begin_mission,(void*)(marg));
+
+
+
+//            pthread_mutex_lock(&finishMutex);
+//            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
+//            pthread_mutex_unlock(&finishMutex);
+
+        }
+    }
+}
+
 
 void MainWindow::slotPauseMission(){
     for(int i=0;i<compMissionSelectTable.size();i++){
@@ -334,11 +425,13 @@ void MainWindow::slotContMission(){
             if(sel==-1||midx==-1){
                 return;
             }
+
             //Thread Operating
 
             //Comp Operating
 
             //pthread_mutex_unlock(&((MissionInfo*)g_vecMissionTable[midx])->pauseMutex);
+
             pthread_t pt;
             pthread_create(&pt,NULL,resumeDownload,g_vecMissionTable[midx]);
             //resumeDownload(g_vecMissionTable[midx]);
@@ -378,7 +471,7 @@ void MainWindow::slotPlotWave(){
             tdb+=((MissionInfo*)g_vecMissionTable[i])->m_lSpeedBytes;
             pthread_mutex_unlock(&outputMutex);
             pthread_mutex_lock(&timeMutex);
-            tdt+=(((MissionInfo*)g_vecMissionTable[i])->m_lConsumeTime)+1;
+            tdt+=((((MissionInfo*)g_vecMissionTable[i])->m_lConsumeTime)+1);
             pthread_mutex_unlock(&timeMutex);
         }
     }
@@ -386,7 +479,7 @@ void MainWindow::slotPlotWave(){
     int rate=tdb/tdt;
 
     if(bExist){
-        g_Scene->addLine((qreal)g_tkPosition,90-(((qreal)g_lastRate/1000)/100)*90,(qreal)g_tkPosition+2,90-(((qreal)rate/1000)/100)*90);
+        g_Scene->addLine((qreal)g_tkPosition,-(((qreal)g_lastRate/1000)/100)*90,(qreal)g_tkPosition+2,-(((qreal)rate/1000)/100)*90);
         char tmp[128]={};
         sprintf(tmp,"%9dKB/s",rate/1000);
         this->ui->speedLabel->setText(tmp);
