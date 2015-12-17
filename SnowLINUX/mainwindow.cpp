@@ -255,7 +255,6 @@ void MainWindow::slotUpdateSelectTable(){
 
 
 void MainWindow::slotDelMission(){
-
     for(int i=0;i<compMissionSelectTable.size();i++){
         if(compMissionSelectTable[i]==true){
             //Do Deletion
@@ -295,11 +294,10 @@ void MainWindow::slotDelMission(){
             tmpCheck->close();
             ThreadInfo*tis=((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable;
 
-            for(int m=0;m<((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum;m++){
-                pthread_cancel(tis[m].tid);
-            }
+
             pthread_mutex_lock(&finishMutex);
             ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
+
             pthread_mutex_unlock(&finishMutex);
 
 
@@ -309,6 +307,14 @@ void MainWindow::slotDelMission(){
 
             ((MissionInfo*)g_vecMissionTable[midx])->m_iCompIndex=-1;
             g_iMissionNum--;
+
+            pthread_mutex_lock(&tableMutex);
+            for(int n=midx;n<g_vecMissionTable.size();n++){
+                ((MissionInfo*)g_vecMissionTable[n-0])->m_iCompIndex--;
+            }
+
+            pthread_mutex_unlock(&tableMutex);
+
         }
     }
 
