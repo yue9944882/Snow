@@ -3,7 +3,8 @@
 #include "global.h"
 #include "global_f.h"
 #include <pthread.h>
-
+#include <QSplashScreen>
+#include <QPixmap>
 #include<QApplication>
 
 
@@ -13,6 +14,12 @@
 
 int main(int argc, char *argv[])
 {
+
+
+
+    //System Environment Varriable
+    //g_homeDIR=getenv("HOME");
+    //fprintf(stderr,getenv("SNOW_HOME"));
 
     //// Global Initialization
     //INIT : Waiter thread & globals
@@ -42,8 +49,17 @@ int main(int argc, char *argv[])
 
     //Enable Windows
     QApplication a(argc, argv);
+
+    QSplashScreen*screen=new QSplashScreen;
+    screen->setPixmap(QPixmap("/home/kimmin/Github/Snow/SnowLINUX/screen.png"));
+    //screen->setGeometry(300,100,400,400);
+    screen->show();
+
+    sleep(2);
+
     MainWindow w;
     w.show();
+    delete screen;
     return a.exec();
 
 

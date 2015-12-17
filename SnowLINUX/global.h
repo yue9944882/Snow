@@ -6,9 +6,13 @@
 #include <vector>
 #include "global_t.h"
 #include <signal.h>
+#include <string>
 #include <QGraphicsScene>
 #include "missionbar.h"
 #include "missioncheck.h"
+
+
+extern std::string g_homeDIR;
 
 extern pthread_t hthread;
 extern int g_iNextMissionIndex;

@@ -294,14 +294,21 @@ void MainWindow::slotDelMission(){
             tmpBar->close();
             tmpCheck->close();
             ThreadInfo*tis=((MissionInfo*)g_vecMissionTable[midx])->m_stThreadTable;
+
             for(int m=0;m<((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum;m++){
                 pthread_cancel(tis[m].tid);
             }
             pthread_mutex_lock(&finishMutex);
             ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
             pthread_mutex_unlock(&finishMutex);
+
+
+
             delete tmpBar;
             delete tmpCheck;
+
+            ((MissionInfo*)g_vecMissionTable[midx])->m_iCompIndex=-1;
+            g_iMissionNum--;
         }
     }
 
@@ -381,7 +388,7 @@ void MainWindow::slotPauseMission(){
             }
             if(sel==-1||midx==-1){
                 return;
-            }
+            }http://www.eu.apache.org/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1-src.tar.gz
             //Thread Operating
 
             int tn=(((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum);

@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <QString>
+#include <string>
 #include "missionbar.h"
 #include "missioncheck.h"
 #include <QGraphicsScene>
@@ -19,6 +20,10 @@ pthread_mutex_t timeMutex;
 pthread_mutex_t finishMutex;
 pthread_mutex_t pathMutex;
 pthread_mutex_t clickMutex;
+
+//Environment Varriable
+std::string g_homeDIR;
+
 
 //Communication between NEWDIALOG & MAINWINDOW
 QString g_PathString;
