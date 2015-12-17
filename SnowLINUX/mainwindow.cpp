@@ -22,15 +22,15 @@ MainWindow::MainWindow(QWidget *parent) :
     this->move(400,100);
     this->setWindowTitle(tr("Snow"));
     //ToolButtonIcon
-    ui->newButton->setIcon(QIcon("/home/kimmin/Github/Snow/SnowLINUX/new.png"));
+    ui->newButton->setIcon(QIcon(std::string(g_homeDIR+std::string("/new.png")).c_str()));
     ui->newButton->setStatusTip(tr("Start a new mission!"));
-    ui->contButton->setIcon(QIcon("/home/kimmin/Github/Snow/SnowLINUX/continue.png"));
+    ui->contButton->setIcon(QIcon(std::string(g_homeDIR+std::string("/continue.png")).c_str()));
     ui->contButton->setStatusTip(tr("Continue a already paused mission!"));
-    ui->pauseButton->setIcon(QIcon("/home/kimmin/Github/Snow/SnowLINUX/pause.png"));
+    ui->pauseButton->setIcon(QIcon(std::string(g_homeDIR+std::string("/pause.png")).c_str()));
     ui->pauseButton->setStatusTip(tr("Pause a running mission!"));
-    ui->deleteButton->setIcon(QIcon("/home/kimmin/Github/Snow/SnowLINUX/delete.png"));
+    ui->deleteButton->setIcon(QIcon(std::string(g_homeDIR+std::string("/delete.png")).c_str()));
     ui->deleteButton->setStatusTip(tr("Delete a mission and its disk storage!"));
-    ui->restButton->setIcon(QIcon("/home/kimmin/Github/Snow/SnowLINUX/restart.png"));
+    ui->restButton->setIcon(QIcon(std::string(g_homeDIR+std::string("/restart.png")).c_str()));
     ui->restButton->setStatusTip(tr("Restart a mission!"));
 
     //Connections

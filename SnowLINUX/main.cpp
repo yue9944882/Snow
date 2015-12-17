@@ -6,25 +6,34 @@
 #include <QSplashScreen>
 #include <QPixmap>
 #include<QApplication>
-
+#include <QString>
 
 //// Four Things U must need to know before starting a routine of downloading
 //// 1. URL 2.PATH 3.MISSION_INDEX 4.THREAD_NUM
 
+extern char **environ;
 
 int main(int argc, char *argv[])
 {
+    QApplication a(argc, argv);
 
+    g_homeDIR=getenv("HOME");
 
+    g_homeDIR+=std::string("/snow");
+
+    QSplashScreen*screen=new QSplashScreen;
+    screen->setPixmap(QPixmap(std::string(g_homeDIR+std::string("/screen.png")).c_str()));
+    screen->show();
 
     //System Environment Varriable
-    //g_homeDIR=getenv("HOME");
-    //fprintf(stderr,getenv("SNOW_HOME"));
+
 
     //// Global Initialization
     //INIT : Waiter thread & globals
     int wait_ret;
 
+    screen->showMessage(QObject::tr("Initializing the global signal function & sigset..."),Qt::AlignRight,Qt::white);
+    sleep(1);
     sigemptyset(&signal_set);
     sigaddset(&signal_set,SIGINT);
     sigaddset(&signal_set,SIGALRM);
@@ -36,6 +45,9 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
+
+    screen->showMessage(QObject::tr("Initializing the global mutex..."),Qt::AlignRight,Qt::white);
+    sleep(1);
     //INIT : Global mutex
     pthread_mutex_init(&outputMutex,NULL);
     pthread_mutex_init(&tableMutex,NULL);
@@ -48,14 +60,12 @@ int main(int argc, char *argv[])
     pthread_mutex_lock(&clickMutex);
 
     //Enable Windows
-    QApplication a(argc, argv);
-
-    QSplashScreen*screen=new QSplashScreen;
-    screen->setPixmap(QPixmap("/home/kimmin/Github/Snow/SnowLINUX/screen.png"));
     //screen->setGeometry(300,100,400,400);
-    screen->show();
 
-    sleep(2);
+    screen->showMessage(QObject::tr("Configuration environment varriable..."),Qt::AlignRight,Qt::white);
+    sleep(1);
+
+
 
     MainWindow w;
     w.show();
