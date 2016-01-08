@@ -327,6 +327,7 @@ void MainWindow::slotDelMission(){
 }
 
 void MainWindow::slotRestMission(){
+    pthread_mutex_lock(&tableMutex);
     for(int i=0;i<compMissionSelectTable.size();i++){
         if(compMissionSelectTable[i]==true){
             //Do Deletion
@@ -348,13 +349,17 @@ void MainWindow::slotRestMission(){
             for(int m=0;m<((MissionInfo*)g_vecMissionTable[midx])->m_iThreadNum;m++){
                 pthread_cancel(tis[m].tid);
             }
-
             MissionInfo*mission=g_vecMissionTable[midx];
+            pthread_mutex_lock(&finishMutex);
+            pthread_cancel(mission->m_missionTID);
             mission->m_bRunning=false;
+            pthread_mutex_unlock(&finishMutex);
             mission->m_lDoneBytes=0;
             mission->m_lTotalBytes=1;
             mission->m_lConsumeTime=0;
             mission->m_lSpeedBytes=0;
+            //mission->m_iMissionIndex=midx;
+            //mission->m_lConsumeTime=0;
             MissionArg*marg=new MissionArg;
             marg->iMissionIndex=midx;
             marg->iThreadNum=g_ThreadNum;
@@ -368,15 +373,14 @@ void MainWindow::slotRestMission(){
             //marg.szPath="/home/kimmin/Downloads/";
 
             pthread_create(&(mission->m_missionTID),NULL,begin_mission,(void*)(marg));
-
-
-
+            //mission->m_bRunning=false;
 //            pthread_mutex_lock(&finishMutex);
 //            ((MissionInfo*)g_vecMissionTable[midx])->m_bRunning=true;
 //            pthread_mutex_unlock(&finishMutex);
 
         }
     }
+     pthread_mutex_unlock(&tableMutex);
 }
 
 

@@ -104,8 +104,9 @@ void MissionBar::slotUpdateProgress(){
     pthread_mutex_lock(&finishMutex);
     bool bTmp=((MissionInfo*)g_vecMissionTable[midx])->m_bRunning;
     pthread_mutex_unlock(&finishMutex);
-
+    fprintf(stderr,"tick");
     if(bTmp==false){
+        fprintf(stderr,"tock");
         pthread_mutex_lock(&timeMutex);
         ((MissionInfo*)g_vecMissionTable[midx])->m_lConsumeTime++;
         pthread_mutex_unlock(&timeMutex);
@@ -134,7 +135,8 @@ void MissionBar::slotUpdateProgress(){
     fprintf(stderr,"SpeedByte :%ld <>  %ld\n",(((MissionInfo*)g_vecMissionTable[midx])->m_lSpeedBytes),(((MissionInfo*)g_vecMissionTable[midx])->m_lDoneBytes));
     long ltime=((MissionInfo*)g_vecMissionTable[midx])->m_lConsumeTime;
     this->timeBar->setText(setTimeFormat(ltime));
-    sprintf(tmpsp,"%ldKB/s",(ldtmp/1000)/ltime);
+    fprintf(stderr,"1 : %ld    2:%ld",ldtmp,ltime);
+    sprintf(tmpsp,"%ldKB/s",(ldtmp/1000)/(ltime+1));
     this->staticLabel->setText(QString(tmpsp));
     pthread_mutex_unlock(&timeMutex);
     pthread_mutex_unlock(&(((MissionInfo*)g_vecMissionTable[midx])->mutex));
