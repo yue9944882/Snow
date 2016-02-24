@@ -1,4 +1,5 @@
 #项目目标 Major Functionality#
+![](https://travis-ci.org/yue9944882/Snow.svg?branch=master)
 
 开发环境： 	CentOS7-Qt3.3
 
